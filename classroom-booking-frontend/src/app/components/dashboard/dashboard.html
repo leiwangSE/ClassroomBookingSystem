@@ -1,0 +1,182 @@
+<div class="dashboard">
+  <header class="dashboard-header">
+    <h1>Classroom Booking Dashboard</h1>
+    <div class="user-info">
+      <span>Welcome, {{ currentUser?.username || 'User' }}!</span>
+      <button (click)="logout()" class="logout-btn">Logout</button>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <div class="nav-tabs">
+    <button [class.active]="activeTab === 'overview'" (click)="setActiveTab('overview')">
+      Overview
+    </button>
+    <button [class.active]="activeTab === 'book'" (click)="setActiveTab('book')">
+      Book Classroom
+    </button>
+    <button [class.active]="activeTab === 'my-bookings'" (click)="setActiveTab('my-bookings')">
+      My Bookings
+    </button>
+    <button [class.active]="activeTab === 'browse'" (click)="setActiveTab('browse')">
+      Browse Classrooms
+    </button>
+  </div>
+
+  <div class="dashboard-content">
+    
+    <!-- Overview Tab -->
+    <div *ngIf="activeTab === 'overview'" class="tab-content">
+      <div class="quick-stats">
+        <div class="stat-card">
+          <h3>Available Classrooms</h3>
+          <p class="stat-number">{{ classrooms.length }}</p>
+        </div>
+        <div class="stat-card">
+          <h3>Your Active Bookings</h3>
+          <p class="stat-number">{{ myBookings.length }}</p>
+        </div>
+        <div class="stat-card">
+          <h3>System Status</h3>
+          <p class="stat-text">Online</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Book Classroom Tab -->
+    <div *ngIf="activeTab === 'book'" class="tab-content">
+      <div class="booking-form">
+        <h2>Book a New Classroom</h2>
+
+        <!-- Add this debug section -->
+        <div style="background: yellow; padding: 10px; margin-bottom: 20px; border: 1px solid orange;">
+          <strong>Debug Info:</strong><br>
+          Form valid = {{ bookingForm?.form?.valid }}<br>
+          Classroom ID = {{ newBooking.classroomId }}<br>
+          Start Date = {{ newBooking.startDate }}<br>
+          Start Time = {{ newBooking.startTime }}<br>
+          Purpose = {{ newBooking.purpose }}<br>
+          Loading = {{ loading }}
+        </div>
+        
+        <form (ngSubmit)="createBooking()" #bookingForm="ngForm">
+          <div class="form-group">
+            <label>Classroom *</label>
+            <select [(ngModel)]="newBooking.classroomId" name="classroom" required>
+              <option value="0">Select a classroom...</option>
+              <option *ngFor="let classroom of classrooms" [value]="classroom.id">
+                {{ classroom.name }} (Capacity: {{ classroom.capacity }})
+              </option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Start Date *</label>
+              <input type="date" [(ngModel)]="newBooking.startDate" 
+                     name="startDate" required [min]="getTodaysDate()">
+            </div>
+            <div class="form-group">
+              <label>Start Time *</label>
+              <input type="time" [(ngModel)]="newBooking.startTime" 
+                     name="startTime" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>End Date *</label>
+              <input type="date" [(ngModel)]="newBooking.endDate" 
+                     name="endDate" required [min]="getTodaysDate()">
+            </div>
+            <div class="form-group">
+              <label>End Time *</label>
+              <input type="time" [(ngModel)]="newBooking.endTime" 
+                     name="endTime" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Purpose *</label>
+            <textarea [(ngModel)]="newBooking.purpose" name="purpose" 
+                      rows="3" placeholder="What will you use this classroom for?" required>
+            </textarea>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" [disabled]="!bookingForm.form.valid || loading" 
+                    class="btn-primary">
+              {{ loading ? 'Creating...' : 'Create Booking' }}
+            </button>
+            <button type="button" (click)="resetBookingForm()" class="btn-secondary">
+              Reset Form
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- My Bookings Tab -->
+    <div *ngIf="activeTab === 'my-bookings'" class="tab-content">
+      <h2>My Bookings</h2>
+      
+      <div *ngIf="myBookings.length === 0" class="empty-state">
+        <h3>No bookings found</h3>
+        <p>You haven't made any bookings yet.</p>
+        <button (click)="setActiveTab('book')" class="btn-primary">Book Your First Classroom</button>
+      </div>
+
+      <div *ngIf="myBookings.length > 0" class="bookings-grid">
+        <div *ngFor="let booking of myBookings" class="booking-card">
+          <div class="booking-header">
+            <h3>{{ booking.classroomName }}</h3>
+            <span class="status-badge">{{ booking.status }}</span>
+          </div>
+          <div class="booking-details">
+            <p><strong>Date:</strong> {{ formatDateTime(booking.startTime) }}</p>
+            <p><strong>Duration:</strong> {{ formatDateTime(booking.startTime) }} - {{ formatDateTime(booking.endTime) }}</p>
+            <p><strong>Purpose:</strong> {{ booking.purpose }}</p>
+          </div>
+          <div class="booking-actions">
+            <button (click)="cancelBooking(booking.id)" class="btn-danger">
+              Cancel Booking
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Browse Classrooms Tab -->
+    <div *ngIf="activeTab === 'browse'" class="tab-content">
+      <h2>Available Classrooms</h2>
+      
+      <div class="classrooms-grid">
+        <div *ngFor="let classroom of classrooms" class="classroom-card">
+          <div class="classroom-header">
+            <h3>{{ classroom.name }}</h3>
+            <span class="capacity-badge">{{ classroom.capacity }} seats</span>
+          </div>
+          <div class="classroom-details">
+            <p><strong>Capacity:</strong> {{ classroom.capacity }} people</p>
+            <p><strong>Status:</strong> 
+              <span [class.available]="classroom.isActive">
+                {{ classroom.isActive ? 'Available' : 'Unavailable' }}
+              </span>
+            </p>
+          </div>
+          <div class="classroom-actions" *ngIf="classroom.isActive">
+            <button (click)="setActiveTab('book')" class="btn-primary">
+              Book This Room
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message Display -->
+    <div *ngIf="message" class="message" [class.error]="isError" [class.success]="!isError">
+      {{ message }}
+    </div>
+
+  </div>
+</div>
