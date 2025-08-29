@@ -16,7 +16,8 @@ cd classroom-booking-system
 
 2. Start the application:
 
-bashdocker-compose up --build
+bashdocker-compose docker-compose.yml up --build
+docker compose -f ./classroom-booking-frontend/docker-compose.yml up
 
 3. Access the application:
 
