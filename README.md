@@ -111,7 +111,7 @@ bashng serve
 
 Access application
 
-Frontend: http://localhost:3000
+Frontend: http://localhost:4200
 Backend: http://localhost:5198
 
 
